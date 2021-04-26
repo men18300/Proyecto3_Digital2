@@ -8,6 +8,7 @@
 //***************************************************************************************************************************************
 
 #include <SPI.h>
+#include <SD.h>
 #include <stdint.h>
 #include <stdbool.h>
 #include <TM4C123GH6PM.h>
@@ -49,12 +50,21 @@ void LCD_Print(String text, int x, int y, int fontSize, int color, int backgroun
 void LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int columns, int index, char flip, char offset);
 
-uint16_t readPixel(int16_t x, int16_t y);
+void LCD_FondoSD(char name[]);
 
-extern uint8_t Escenario1[];
+
+//extern uint8_t Escenario1[];
+
 extern uint8_t LinkSalto[];
 extern uint8_t LinkEspada[];
+extern uint8_t LinkParado[];
+
+extern uint8_t DonkeyCorriendoEscenario1[];
+extern uint8_t DonkeyAtaque1Escenario1[];
+extern uint8_t DonkeyParadoEscenario1[];
+
 extern uint8_t PersonajeMiniatura[];
+//extern uint8_t PersonajeGrande[];
 
 struct control {
   const int izquierda;
@@ -64,27 +74,59 @@ struct control {
 
 };
 
-int x = 0; //Sirve para indicar la posicion de cada jugador en la pantalla
+int x = 0; //Sirve para indicar la posicion del jugador 1 en la pantalla
+int y = 0; //Sirve para indicar la posicion del jugador 1 en la pantalla
 
 int salto = 0;
 int reinicio = 0;
 int ladojugador = 0; //Indica para que lado esta viendo el personaje
+int ladojugador2 = 0;
+int huboataque = 0;
+
+File myFile;
+
+
 //***************************************************************************************************************************************
 // Inicialización
 //***************************************************************************************************************************************
 void setup() {
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
+  Serial1.begin(9600);
+  // Serial1.begin(9600, SERIAL_8N1, PC_4, PC_5);
+
+
+  while (!Serial);
+  while (!Serial1);
+
+
+
+
+  //Memoria SD
+  SPI.setModule(0);  //iniciamos comunicacion SPI en el modulo 0
+  Serial.print("Initializing SD card...");
+  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
+  // Note that even if it's not used as the CS pin, the hardware SS pin
+  // (10 on most Arduino boards, 53 on the Mega) must be left as an output
+  // or the SD library functions will not work.
+  pinMode(12, OUTPUT);  //Colocamos el CS del modulo SPI-0 como Output
+  //Se verifica que se haya iniciado correctamente la SD
+  if (!SD.begin(12)) {
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("initialization done.");
+  //************
+
   GPIOPadConfigSet(GPIO_PORTB_BASE, 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7, GPIO_STRENGTH_8MA, GPIO_PIN_TYPE_STD_WPU);
   Serial.println("Inicio");
   LCD_Init();
   LCD_Clear(0x00);
 
-  FillRect(0, 0, 319, 206, 0x421b);
-  String text1 = "Super Mario World!";
-  LCD_Print(text1, 20, 100, 2, 0xffff, 0x421b);
+  // FillRect(0, 0, 319, 206, 0x421b);
   //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
-  LCD_Bitmap(0, 0, 320, 240, Escenario1);
+  LCD_FondoSD("INIT.txt");
+  //LCD_Bitmap(0, 0, 320, 240, Escenario1);
   //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
 
 
@@ -93,8 +135,14 @@ void setup() {
   pinMode(PA_7, INPUT);
   pinMode(PF_1, INPUT);
 
+  //Para el Serial 1
+  //pinMode(PC_4,INPUT);
+  //pinMode(PC_5,OUTPUT);
+
 
   reinicio = 1;
+
+
 
 }
 //***************************************************************************************************************************************
@@ -104,119 +152,277 @@ void loop() {
 
   String textoInicio = "PRESS START";
   LCD_Print(textoInicio, 75, 160, 2, 0xffff, 0x421b);
-  LCD_Bitmap(0, 0, 320, 240, Escenario1);
-
+  //LCD_Bitmap(0, 0, 320, 240, Escenario1);
+  // LCD_FondoSD("INIT.txt");
+  Serial1.write(1);
 
   struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
 
 
   if ((control1.derecha == LOW || control1.izquierda == LOW) && reinicio == 1) {
     reinicio = 0;
-   // LCD_Clear(0xFFFFFF);
+    Serial1.write(1);
+    // LCD_Clear(0xFFFFFF);
+    LCD_FondoSD("ESC1.txt");
 
-     for (int y = 0; y < 100; y++) {
-          delay(5);
-          int anim = (y / 11) % 8;
-          LCD_Sprite(46, 68, 40, 40, PersonajeMiniatura, 8, anim, 0, 0);
-        }
-        LCD_Sprite(46, 68, 40, 40, PersonajeMiniatura, 8, 0, 0, 0);
-    
-        delay(2000);
+    for (int y = 0; y < 100; y++) {
+      delay(5);
+      int anim = (y / 11) % 8;
+      LCD_Sprite(100, 68, 40, 40, PersonajeMiniatura, 8, anim, 0, 0);
+      //   LCD_Sprite(46, 68, 102, 102, PersonajeGrande, 8, 0, 0, 0);
+    }
+    LCD_Sprite(100, 68, 40, 40, PersonajeMiniatura, 8, 0, 0, 0);
+    //  LCD_Sprite(46, 68, 102, 102, PersonajeGrande, 8, 0, 0, 0);
+    delay(1000);
+    for (int y = 0; y < 100; y++) {
+      delay(5);
+      int anim = (y / 11) % 8;
+      LCD_Sprite(175, 68, 40, 40, PersonajeMiniatura, 8, anim, 0, 0);
+      //   LCD_Sprite(46, 68, 102, 102, PersonajeGrande, 8, 0, 0, 0);
+    }
+    LCD_Sprite(175, 68, 40, 40, PersonajeMiniatura, 8, 1, 0, 0);
+    //  LCD_Sprite(46, 68, 102, 102, PersonajeGrande, 8, 0, 0, 0);
+
+    delay(500);
+
+    // delay(2000);
 
 
-    LCD_Bitmap(0, 0, 320, 240, Escenario1);
+    //LCD_Bitmap(0, 0, 320, 240, Escenario1);
+    LCD_FondoSD("ESC1.txt");
+
+    LCD_Sprite(50, 180, 40, 40, PersonajeMiniatura, 8, 0, 0, 0);
+    LCD_Sprite(195, 180, 40, 40, PersonajeMiniatura, 8, 1, 0, 0);
+    ladojugador2 = 1;
 
 
+
+    ///Limites de personajes
+    x = 18;
+    y = 247;
 
     while (reinicio != 1) {
+
+      Serial.println (x);
+      Serial.println(y);
+
       struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
 
       if (control1.derecha == LOW) {
 
-        x++;
-        int anim = (x / 11) % 8;
-        // LCD_Sprite(x, 120, 35, 48, "LINKC.txt", 6, anim, 0, 0);
-        LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 0, 0);
+        if (x < 283) {
+          x++;
+          int anim = (x / 11) % 8;
+          LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 0, 0);
+          V_line( x - 1, 103, 48, 0x0002);
+          ladojugador = 2;
 
+        }
+        else {
+          int anim = (x / 11) % 8;
+          LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 0, 0);
+          V_line( x - 1, 103, 48, 0x0002);
+          ladojugador = 2;
 
-        V_line( x - 1, 103, 48, 0x0002);
-        ladojugador = 2;
+        }
+
 
       }
 
       else if (control1.izquierda == LOW) {
 
-        int anim = (x / 11) % 8;
-        x--;
-        // LCD_SpriteSD(x, 120, 35, 48, "LINKC.txt", 6, anim, 1, 0);
-        LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 1, 0);
-        V_line( x + 35, 103, 48, 0x0002);
-        ladojugador = 1;
 
-      }
-
-//      else if (control1.arriba == LOW) {
-//        //Para arriba
-//        for (int y = 0; y < 50; y++) {
-//          delay(5);
-//          int anim = (y / 11) % 8;
-//          salto++;
-//
-//          //          LCD_SpriteSD(x, 120 - salto, 31, 74, "LINKS.txt", 3, anim, 0, 0);
-//          LCD_Sprite(x, 100 - salto, 31, 74, LinkSalto, 3, anim, 0, 0);
-//          V_line( x + 16, 103, 32, 0x0042);
-//        }
-//        int alturafinal = 0;
-//        alturafinal = 120 - salto;
-//        salto = 0;
-//
-//        for (int y = 0; y < 40; y++) {
-//          delay(5);
-//          int anim = (y / 11) % 8;
-//          salto++;
-//
-//          // LCD_SpriteSD(x, 120 + salto, 31, 74, "LINKS.txt", 3, anim, 0, 0);
-//          LCD_Sprite(x, alturafinal + salto, 31, 74, LinkSalto , 3, anim, 0, 0);
-//          V_line( x + 16, 103, 32, 0x0002);
-//        }
-//        salto = 0;
-//
-//      }
-
-
-
-      else if (control1.ataque1 == LOW) {
-
-        for (int y = 0; y < 60; y++) {
-          delay(5);
-          int anim = (y / 11) % 8;
-          //  LCD_SpriteSD(x, 120, 103, 48, "LINKA1.txt", 4, anim, 0, 0);
-          LCD_Sprite(x, 103, 103, 48, LinkEspada, 4, anim, 0, 0);
+        if (x > 18) {
+          int anim = (x / 11) % 8;
+          x--;
+          LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 1, 0);
+          V_line( x + 35, 103, 48, 0x0002);
+          ladojugador = 1;
         }
 
+        else {
+          int anim = (x / 11) % 8;
+          LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 1, 0);
+          V_line( x + 35, 103, 48, 0x0002);
+          ladojugador = 1;
+        }
+
+
+      }
+
+      //      else if (control1.arriba == LOW) {
+      //        //Para arriba
+      //        salto = 0;
+      //        for (int y1 = 0; y1 < 50; y1++) {
+      //          delay(5);
+      //          int anim = (y1 / 11) % 8;
+      //          salto++;
+      //          LCD_Sprite(x, 77 - salto, 31, 74, LinkSalto, 3, anim, 0, 0);
+      //          H_line( x, 77 - salto + 74, 31, 0x0002);
+      //        }
+      //        int alturafinal = 0;
+      //        alturafinal = 77 - salto;
+      //        salto = 0;
+      //
+      //        for (int y1 = 0; y1 < 32; y1++) {
+      //          delay(5);
+      //          int anim = (y1 / 11) % 8;
+      //          salto++;
+      //
+      //          LCD_Sprite(x, alturafinal + salto, 31, 74, LinkSalto , 3, anim, 0, 0);
+      //          H_line( x, alturafinal + salto - 1, 31, 0x0002);
+      //        }
+      //        salto = 0;
+      //        for (int i = 0; i < 50; i++) {
+      //          H_line( x, 103 -i, 31, 0x0002);
+      //        }
+      //      }
+      //
+
+
+      //      else if (control1.ataque1 == LOW) {
+      //
+      //        if (ladojugador == 1) {
+      //          for (int y = 0; y < 60; y++) {
+      //            delay(5);
+      //            int anim = (y / 11) % 8;
+      //            LCD_Sprite(x, 103, 103, 48, LinkEspada, 4, anim, 1, 0);
+      //          }
+      //
+      //        }
+      //
+      //        else {
+      //          for (int y = 0; y < 60; y++) {
+      //            delay(5);
+      //            int anim = (y / 11) % 8;
+      //            LCD_Sprite(x, 103, 103, 48, LinkEspada, 4, anim, 0, 0);
+      //          }
+      //        }
+      //        huboataque = 1;
+      //      }
+
+
+      //////////////////////////////////////////
+      //SEGUNDO JUGADOR////
+
+      //Segundo Jugador al lado izquierdo
+      else if (control1.arriba == LOW) {
+
+        if (y > 4) {
+          int anim = (y / 11) % 8;
+          y--;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
+          V_line( y + 71, 103, 45, 0x0002);
+          H_line( y, 106, 31, 0x0002);
+
+          ladojugador2 = 1;
+        }
+        else {
+          int anim = (y / 11) % 8;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
+          V_line( y + 71, 103, 45, 0x0002);
+          H_line( y, 106, 31, 0x0002);
+
+          ladojugador2 = 1;
+        }
+
+
+
+      }
+
+      //Segundo Jugador al lado derecho
+      else if (control1.ataque1 == LOW) {
+        if (y < 247) {
+          y++;
+          int anim = (y / 11) % 8;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
+          V_line( y - 1, 103, 45, 0x0002);
+          H_line( y, 106, 31, 0x0002);
+          //    V_line( x - 1, 103, 48, 0x0002);
+          ladojugador2 = 2;
+        }
+        else {
+
+          int anim = (y / 11) % 8;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
+          V_line( y - 1, 103, 45, 0x0002);
+          H_line( y, 106, 31, 0x0002);
+          //    V_line( x - 1, 103, 48, 0x0002);
+          ladojugador2 = 2;
+
+        }
+
+
+
       }
 
 
+      //////////////////////////////////////
+      //CUANDO NO SE APACHA NADA
+      ////////////////////////////////////////
 
       else {
+
+        if (ladojugador2 == 1) {
+          LCD_Sprite(y, 105, 43, 45, DonkeyParadoEscenario1, 3, 0, 1, 0);
+          for (int i = 43; i < 70; i++) {
+            V_line( y + i, 103, 48, 0x0002);
+            //H_line( x + 23, 151, 65, 0x0002);
+          }
+
+        }
+        if (ladojugador2 == 2) {
+          LCD_Sprite(y, 105, 43, 45, DonkeyParadoEscenario1, 3, 0, 0, 0);
+          for (int i = 43; i < 70; i++) {
+            V_line( y + i, 103, 48, 0x0002);
+            //H_line( x + 23, 151, 65, 0x0002);
+          }
+
+        }
+
+
         if (ladojugador == 1) {
           int anim = (x / 11) % 8;
           //  LCD_SpriteSD(x, 120, 22, 48, "LINKP.txt", 2, anim, 0, 0);
           LCD_Sprite(x, 103, 22, 48, LinkParado, 2, 0, 1, 0);
 
-          for (int i = 22; i < 36; i++) {
-            V_line( x + i, 103, 48, 0x0002);
+          if (huboataque == 1) {
+            huboataque = 0;
+            for (int i = 22; i < 55; i++) {
+              V_line( x + i, 103, 48, 0x0002);
+              H_line( x + 23, 152, 65, 0x0002);
+            }
           }
 
+          else {
+            for (int i = 22; i < 36; i++) {
+              V_line( x + i, 103, 48, 0x0002);
+              H_line( x + 23, 151, 65, 0x0002);
+            }
+          }
 
         }
         else {
           int anim = (x / 11) % 8;
           //  LCD_SpriteSD(x, 120, 22, 48, "LINKP.txt", 2, anim, 0, 0);
           LCD_Sprite(x, 103, 22, 48, LinkParado, 2, 0, 0, 0);
-          for (int i = 22; i < 36; i++) {
-            V_line( x + i, 103, 48, 0x0002);
+
+          if (huboataque == 1) {
+            huboataque = 0;
+            for (int i = 22; i < 55; i++) {
+              V_line( x + i, 103, 48, 0x0002);
+              H_line( x + 23, 151, 90, 0x0002);
+            }
+
           }
+
+          else {
+            for (int i = 22; i < 36; i++) {
+              V_line( x + i, 103, 48, 0x0002);
+              H_line( x + 23, 151, 65, 0x0002);
+            }
+          }
+
 
 
         }
@@ -552,24 +758,65 @@ void LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[], int
 }
 
 
-//uint16_t readPixel(int16_t x, int16_t y)
-//{
-//  beginTransaction(SPISettings(_safe_freq, MSBFIRST, SPI_MODE0, SPI_DATA_SIZE_8BIT));
-//
-//  writecommand(ILI9341_CASET); // Column addr set
-//  spiwrite16(x);
-//  spiwrite16(x);
-//  writecommand(ILI9341_PASET); // Row addr set
-//  spiwrite16(y);
-//  spiwrite16(y);
-//  writecommand(ILI9341_RAMRD); // read GRAM
-//  (void)spiread();             //dummy read
-//  uint8_t r = spiread();
-//  uint8_t g = spiread();
-//  uint8_t b = spiread();
-//  cs_set();
-//
-//  mSPI.beginTransaction(SPISettings(_freq, MSBFIRST, SPI_MODE0, SPI_DATA_SIZE_16BIT));
-//
-//  return color565(r, g, b);
-//}
+void LCD_FondoSD(char name[]) {
+  LCD_CMD(0x02c); // write_memory_start
+  digitalWrite(LCD_RS, HIGH);
+  digitalWrite(LCD_CS, LOW);
+  SetWindows(0, 0, 319, 239);
+  myFile = SD.open(name);
+  char a;
+  char C[2];
+  int n;
+  if (myFile) { //Si se logro abrir de manera correcta
+    // read from the file until there's nothing else in it:
+    while (myFile.available()) { //Se va leyendo cada caracter del archivo hasta que ya se hayan leido todos
+      n = 0;
+      while (1) {
+        a = myFile.read();
+        if ((a == ',') | (myFile.available() == 0)) {
+          break;
+        }
+        else {
+          C[n] = a;
+          n++;
+        }
+      }
+      uint8_t num = (uint8_t)strtol(C, NULL, 16);
+      LCD_DATA(num);
+    }
+    // close the file:
+    myFile.close(); //Se cierra el archivo
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening Hola.txt");
+  }
+  digitalWrite(LCD_CS, HIGH);
+}
+
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//INFORMACION DE PERSONAJES
+//////////////////////////////////////////////////////
+//////////////////////////////////////////////////////
+//Link: (altura-ancho-#sprite)
+//Corriendo;
+//Parado: (48-22-2)
+//Salto:
+//Ataque1:
+/////////////////////////////////
+//Donkey: (altura-ancho-#sprite)
+//Corriendo;
+//Parado:
+//Salto:
+//Ataque1:
+
+/////////////////////////////////////
+//Otros
+//PersonaGrande: 102-102-8
+
+/////////////////////////////////////
+//Limite de personajes en patalla
+////////////////////////////////////
+//Escenario 1
+//Donkey--> y=4-247
+//Link---->18-283
