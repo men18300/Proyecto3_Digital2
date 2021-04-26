@@ -1,4 +1,4 @@
-//***************************************************************************************************************************************
+ //***************************************************************************************************************************************
 /* Librería para el uso de la pantalla ILI9341 en modo 8 bits
    Basado en el código de martinayotte - https://www.stm32duino.com/viewtopic.php?t=637
    Adaptación, migración y creación de nuevas funciones: Pablo Mazariegos y José Morales
@@ -208,7 +208,7 @@ void loop() {
 
       struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
 
-      if (control1.derecha == LOW) {
+      if (control1.derecha == LOW && x!=y-25) {
 
         if (x < 283) {
           x++;
@@ -306,7 +306,7 @@ void loop() {
       //SEGUNDO JUGADOR////
 
       //Segundo Jugador al lado izquierdo
-      else if (control1.arriba == LOW) {
+      else if (control1.arriba == LOW && y!=x+25) {
 
         if (y > 4) {
           int anim = (y / 11) % 8;
