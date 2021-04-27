@@ -66,8 +66,8 @@ void porcentaje_vida(int jug, int vida);
 void animacionGolpe(int jugador, int golpeo);
 
 
-//extern uint8_t Escenario1[];
 
+//Variables que se encuentran en la memoria FLASH
 extern uint8_t LinkSalto[];
 extern uint8_t LinkEspada[];
 extern uint8_t LinkParado[];
@@ -85,8 +85,14 @@ struct control {
   const int derecha ;
   const int arriba;
   const int ataque1 ;
-
 };
+
+
+//struct jugador{
+//  int x 
+//  ladojugador
+//  huboataque
+//  };
 
 int x = 0; //Sirve para indicar la posicion del jugador 1 en la pantalla
 int y = 0; //Sirve para indicar la posicion del jugador 1 en la pantalla
@@ -108,10 +114,10 @@ File myFile;
 void setup() {
   SysCtlClockSet(SYSCTL_SYSDIV_2_5 | SYSCTL_USE_PLL | SYSCTL_OSC_MAIN | SYSCTL_XTAL_16MHZ);
   Serial.begin(9600);
-  Serial1.begin(9600);
+  Serial2.begin(9600); //Serial que utilizaremos para la comunicacion con la otro tiva
 
   while (!Serial);
-  while (!Serial1);
+  while (!Serial2);
 
 
 
@@ -137,22 +143,12 @@ void setup() {
   LCD_Init();
   LCD_Clear(0x00);
 
-  // FillRect(0, 0, 319, 206, 0x421b);
-  //LCD_Sprite(int x, int y, int width, int height, unsigned char bitmap[],int columns, int index, char flip, char offset);
   LCD_FondoSD("INIT.txt");
-  //LCD_Bitmap(0, 0, 320, 240, Escenario1);
-  //LCD_Bitmap(unsigned int x, unsigned int y, unsigned int width, unsigned int height, unsigned char bitmap[]);
-
 
   pinMode(PUSH1, INPUT_PULLUP);
   pinMode(PUSH2, INPUT_PULLUP);
   pinMode(PA_7, INPUT);
   pinMode(PF_1, INPUT);
-
-  //Para el Serial 1
-  //pinMode(PC_4,INPUT);
-  //pinMode(PC_5,OUTPUT);
-
 
   reinicio = 1;
 }
@@ -165,14 +161,12 @@ void loop() {
   LCD_Print(textoInicio, 75, 160, 2, 0xffff, 0x421b);
   //LCD_Bitmap(0, 0, 320, 240, Escenario1);
   // LCD_FondoSD("INIT.txt");
-  Serial1.write(1);
 
   struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
 
 
   if ((control1.derecha == LOW || control1.izquierda == LOW) && reinicio == 1) {
     reinicio = 0;
-    Serial1.write(1);
     // LCD_Clear(0xFFFFFF);
     LCD_FondoSD("ESC1.txt");
 
@@ -223,6 +217,7 @@ void loop() {
       Serial.println(y);
 
       struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
+      struct control control2 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
 
       if (control1.derecha == LOW && x != y - 25) {
 

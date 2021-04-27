@@ -7,8 +7,8 @@ void setup() {
 
 
 
-  while (!Serial);
-  while (!Serial2);
+ // while (!Serial);
+//  while (!Serial1);
 //pinMode(PC_4,INPUT);
 //pinMode(PC_5,OUTPUT);
 
@@ -18,11 +18,12 @@ void loop() {
   // reply only when you receive data:
   //if (Serial.available() > 0) {
     // read the incoming byte:
-    incomingByte = Serial2.read();
+   // incomingByte = Serial.read();
 
     // say what you got:
     Serial.print("I received: ");
-    Serial.println(incomingByte);
+    Serial.println(Serial2.read());
+   // delay(100);
   //Serial.println(incomingByte, HEX);
   //}
 }
