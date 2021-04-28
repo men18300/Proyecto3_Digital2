@@ -64,6 +64,7 @@ void LCD_FondoSD(char name[]);
 void ataque_jug(int x, int y, int atacador);
 void porcentaje_vida(int jug, int vida);
 void animacionGolpe(int jugador, int golpeo);
+void ganador(int jugador);
 
 
 
@@ -170,7 +171,7 @@ void loop() {
 
   String textoInicio = "PRESS START";
   LCD_Print(textoInicio, 75, 160, 2, 0xffff, 0x421b);
- Serial2.write(1);
+  Serial2.write(1);
 
   //struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
   struct control control1 = {analogRead(PE_3), analogRead(PE_0), digitalRead(PF_1)};
@@ -179,7 +180,7 @@ void loop() {
 
   if ((control1.ataque1 == LOW || control2.ataque1 == LOW) && reinicio == 1) {
 
-    
+
     reinicio = 0;
     LCD_FondoSD("ESC1.txt");
 
@@ -224,12 +225,12 @@ void loop() {
     //Reseteamos barra de salud
     porcentaje_vida(0, 1);
 
-    
-    
+
+
 
     while (reinicio != 1) {
 
-//Comando para la musica
+      //Comando para la musica
       Serial2.write(3);
 
       Serial.println (x);
@@ -243,7 +244,7 @@ void loop() {
       if (control1.horizontal <= 1000 && x != y - 25) {
 
         if (x < 283) {
-          x+=2;
+          x += 2;
           int anim = (x / 11) % 8;
           LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 0, 0);
           V_line( x - 1, 103, 48, 0x0002);
@@ -268,7 +269,7 @@ void loop() {
 
         if (x > 18) {
           int anim = (x / 11) % 8;
-          x-=2;
+          x -= 2;
           LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 1, 0);
           V_line( x + 35, 103, 48, 0x0002);
           V_line( x + 36, 103, 48, 0x0002);
@@ -318,8 +319,8 @@ void loop() {
 
 
       ///No sirve el boton de este push, por lo que lo haremos con la accion para abajo
-     // else if (control1.vertical >= 3000) {
-else if (control1.ataque1 == LOW) {
+      // else if (control1.vertical >= 3000) {
+      else if (control1.ataque1 == LOW) {
 
         ataque_jug( x,  y, 1 );
         huboataque = 1;
@@ -383,9 +384,10 @@ else if (control1.ataque1 == LOW) {
 
         if (y > 4) {
           int anim = (y  / 11) % 8;
-          y --;
+          y -= 2;
           LCD_Sprite(y , 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
           V_line( y  + 71, 103, 45, 0x0002);
+          V_line( y  + 72, 103, 45, 0x0002);
           H_line( y , 106, 31, 0x0002);
 
           ladojugador2 = 1;
@@ -394,6 +396,7 @@ else if (control1.ataque1 == LOW) {
           int anim = (y / 11) % 8;
           LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
           V_line( y  + 71, 103, 45, 0x0002);
+          V_line( y  + 72, 103, 45, 0x0002);
           H_line( y , 106, 31, 0x0002);
 
           ladojugador2 = 1;
@@ -407,10 +410,11 @@ else if (control1.ataque1 == LOW) {
       //  Segundo Jugador al lado derecho
       else if (control2.horizontal <= 1000 && y <= 247) {
         if (y < 247) {
-          y++;
+          y += 2;
           int anim = (y / 11) % 8;
           LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
           V_line( y - 1, 103, 45, 0x0002);
+          V_line( y - 2, 103, 45, 0x0002);
           H_line( y, 106, 31, 0x0002);
           //    V_line( x - 1, 103, 48, 0x0002);
           ladojugador2 = 2;
@@ -420,6 +424,7 @@ else if (control1.ataque1 == LOW) {
           int anim = (y / 11) % 8;
           LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
           V_line( y - 1, 103, 45, 0x0002);
+          V_line( y - 2, 103, 45, 0x0002);
           H_line( y, 106, 31, 0x0002);
           //    V_line( x - 1, 103, 48, 0x0002);
           ladojugador2 = 2;
@@ -891,8 +896,8 @@ void porcentaje_vida(int jug, int vida) {
 
       dano1 = 0;
       dano2 = 0;
-      reinicio = 1;
-
+      // reinicio = 1;
+      ganador(2);
     }
     else {}
 
@@ -920,7 +925,8 @@ void porcentaje_vida(int jug, int vida) {
 
       dano1 = 0;
       dano2 = 0;
-      reinicio = 1;
+      //reinicio = 1;
+      ganador(1);
 
     }
     else {}
@@ -965,7 +971,7 @@ void animacionGolpe(int jugador, int golpeo) {
         for (int y = 0; y < 60; y++) {
           delay(5);
           int anim = (y / 11) % 8;
-          LCD_Sprite(x-40, 103, 103, 48, LinkEspada, 4, anim, 1, 0);
+          LCD_Sprite(x - 40, 103, 103, 48, LinkEspada, 4, anim, 1, 0);
         }
 
       }
@@ -1043,7 +1049,7 @@ void animacionGolpe(int jugador, int golpeo) {
           delay(1);
           int anim = (z / 11) % 8;
           LCD_Sprite(y, 103, 46, 45, DonkeyAtaque1Escenario1, 8, anim, 0, 0);
-         // LCD_Sprite(y, 103, 53, 52, DonkeyAtaque1Escenario1Corregido, 8, anim, 0, 0);
+          // LCD_Sprite(y, 103, 53, 52, DonkeyAtaque1Escenario1Corregido, 8, anim, 0, 0);
         }
       }
 
@@ -1054,6 +1060,27 @@ void animacionGolpe(int jugador, int golpeo) {
 
   }
 
+
+
+}
+
+
+void ganador(int jugador) {
+  if (jugador == 1) {
+
+
+    String textoInicio = "Link Wins";
+    LCD_Print(textoInicio, 100, 50, 2, 0xffff, 0x0002);
+    delay(1000);
+    reinicio = 1;
+  }
+  else {//Se asume ganador es igual a jugador 2
+    String textoInicio = "Donkey Kong Wins";
+
+    LCD_Print(textoInicio, 100, 50, 2, 0xffff, 0x421b);
+    delay(1000);
+    reinicio = 1;
+  }
 
 
 }
