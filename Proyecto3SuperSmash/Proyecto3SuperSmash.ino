@@ -71,9 +71,12 @@ void animacionGolpe(int jugador, int golpeo);
 extern uint8_t LinkSalto[];
 extern uint8_t LinkEspada[];
 extern uint8_t LinkParado[];
+extern uint8_t LinkGolpeadoEscenario1[];
 
 extern uint8_t DonkeyCorriendoEscenario1[];
 extern uint8_t DonkeyAtaque1Escenario1[];
+
+extern uint8_t DonkeyAtaque1Escenario1Corregido[];
 extern uint8_t DonkeyParadoEscenario1[];
 extern uint8_t DonkeyGolpeadoEscenario1[];
 
@@ -81,18 +84,18 @@ extern uint8_t PersonajeMiniatura[];
 //extern uint8_t PersonajeGrande[];
 
 struct control {
-  const int izquierda;
-  const int derecha ;
-  const int arriba;
+  const int horizontal;
+  const int vertical ;
   const int ataque1 ;
 };
 
 
-//struct jugador{
-//  int x 
-//  ladojugador
-//  huboataque
-//  };
+//struct jugador {
+//  int x
+//  int lado
+//  int  huboataque
+//  int dano
+//};
 
 int x = 0; //Sirve para indicar la posicion del jugador 1 en la pantalla
 int y = 0; //Sirve para indicar la posicion del jugador 1 en la pantalla
@@ -102,6 +105,7 @@ int reinicio = 0;
 int ladojugador = 0; //Indica para que lado esta viendo el personaje
 int ladojugador2 = 0;
 int huboataque = 0;
+int huboataque2 = 0;
 int dano1 = 0;
 int dano2 = 0;
 
@@ -119,16 +123,9 @@ void setup() {
   while (!Serial);
   while (!Serial2);
 
-
-
-
   //Memoria SD
   SPI.setModule(0);  //iniciamos comunicacion SPI en el modulo 0
   Serial.print("Initializing SD card...");
-  // On the Ethernet Shield, CS is pin 4. It's set as an output by default.
-  // Note that even if it's not used as the CS pin, the hardware SS pin
-  // (10 on most Arduino boards, 53 on the Mega) must be left as an output
-  // or the SD library functions will not work.
   pinMode(12, OUTPUT);  //Colocamos el CS del modulo SPI-0 como Output
   //Se verifica que se haya iniciado correctamente la SD
   if (!SD.begin(12)) {
@@ -147,8 +144,22 @@ void setup() {
 
   pinMode(PUSH1, INPUT_PULLUP);
   pinMode(PUSH2, INPUT_PULLUP);
-  pinMode(PA_7, INPUT);
+
+
+  //Primer jugador
+  pinMode(PE_0, INPUT);
+  pinMode(PE_3, INPUT);
   pinMode(PF_1, INPUT);
+
+
+
+
+
+  //Para el segundo jugador
+
+  pinMode(A8, INPUT);
+  pinMode(A9, INPUT);
+  pinMode(PA_7, INPUT);
 
   reinicio = 1;
 }
@@ -159,20 +170,23 @@ void loop() {
 
   String textoInicio = "PRESS START";
   LCD_Print(textoInicio, 75, 160, 2, 0xffff, 0x421b);
-  //LCD_Bitmap(0, 0, 320, 240, Escenario1);
-  // LCD_FondoSD("INIT.txt");
+ Serial2.write(1);
 
-  struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
+  //struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
+  struct control control1 = {analogRead(PE_3), analogRead(PE_0), digitalRead(PF_1)};
+  struct control control2 = {analogRead(A9), analogRead(A8),  digitalRead(PA_7)};
 
 
-  if ((control1.derecha == LOW || control1.izquierda == LOW) && reinicio == 1) {
+  if ((control1.ataque1 == LOW || control2.ataque1 == LOW) && reinicio == 1) {
+
+    
     reinicio = 0;
-    // LCD_Clear(0xFFFFFF);
     LCD_FondoSD("ESC1.txt");
 
-    for (int y = 0; y < 100; y++) {
+
+    for (int z = 0; z < 100; z++) {
       delay(5);
-      int anim = (y / 11) % 8;
+      int anim = (z / 11) % 8;
       LCD_Sprite(100, 68, 40, 40, PersonajeMiniatura, 8, anim, 0, 0);
       //   LCD_Sprite(46, 68, 102, 102, PersonajeGrande, 8, 0, 0, 0);
     }
@@ -181,9 +195,10 @@ void loop() {
     String textoInicio = "VS";
     LCD_Print(textoInicio, 151, 80, 1.2, 0xffff, 0x0002);
     delay(1000);
-    for (int y = 0; y < 100; y++) {
+
+    for (int z = 0; z < 100; z++) {
       delay(5);
-      int anim = (y / 11) % 8;
+      int anim = (z / 11) % 8;
       LCD_Sprite(175, 68, 40, 40, PersonajeMiniatura, 8, anim, 0, 0);
       //   LCD_Sprite(46, 68, 102, 102, PersonajeGrande, 8, 0, 0, 0);
     }
@@ -192,40 +207,47 @@ void loop() {
 
     delay(500);
 
-    // delay(2000);
 
-
-    //LCD_Bitmap(0, 0, 320, 240, Escenario1);
     LCD_FondoSD("ESC1.txt");
 
     LCD_Sprite(50, 180, 40, 40, PersonajeMiniatura, 8, 0, 0, 0);
     LCD_Sprite(195, 180, 40, 40, PersonajeMiniatura, 8, 1, 0, 0);
-    ladojugador2 = 1;
-
 
 
     ///Limites de personajes
     x = 18;
     y = 247;
 
+
+    ladojugador2 = 1;
+
     //Reseteamos barra de salud
     porcentaje_vida(0, 1);
 
+    
+    
+
     while (reinicio != 1) {
+
+//Comando para la musica
+      Serial2.write(3);
 
       Serial.println (x);
       Serial.println(y);
 
-      struct control control1 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
-      struct control control2 = {digitalRead(PUSH1), digitalRead(PUSH2), digitalRead(PA_7), digitalRead(PF_1)};
 
-      if (control1.derecha == LOW && x != y - 25) {
+      struct control control1 = {analogRead(PE_3), analogRead(PE_0), digitalRead(PF_1)};
+      struct control control2 = {analogRead(A9), analogRead(A8), digitalRead(PA_7)};
+
+      //Para el primer jugador, el de la izquierda
+      if (control1.horizontal <= 1000 && x != y - 25) {
 
         if (x < 283) {
-          x++;
+          x+=2;
           int anim = (x / 11) % 8;
           LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 0, 0);
           V_line( x - 1, 103, 48, 0x0002);
+          V_line( x - 2, 103, 48, 0x0002);
           ladojugador = 2;
 
         }
@@ -233,21 +255,23 @@ void loop() {
           int anim = (x / 11) % 8;
           LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 0, 0);
           V_line( x - 1, 103, 48, 0x0002);
+          V_line( x - 2, 103, 48, 0x0002);
           ladojugador = 2;
 
         }
 
 
       }
-
-      else if (control1.izquierda == LOW) {
+      //Para el primer jugador yendo a la derecha
+      else if (control1.horizontal >= 3000) {
 
 
         if (x > 18) {
           int anim = (x / 11) % 8;
-          x--;
+          x-=2;
           LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 1, 0);
           V_line( x + 35, 103, 48, 0x0002);
+          V_line( x + 36, 103, 48, 0x0002);
           ladojugador = 1;
         }
 
@@ -255,134 +279,56 @@ void loop() {
           int anim = (x / 11) % 8;
           LCD_Sprite(x, 103, 35, 48, LinkCorriendo, 6, anim, 1, 0);
           V_line( x + 35, 103, 48, 0x0002);
+          V_line( x + 36, 103, 48, 0x0002);
+          // ladojugador = 1;
           ladojugador = 1;
         }
 
 
       }
 
-      //      else if (control1.arriba == LOW) {
-      //        //Para arriba
-      //        salto = 0;
-      //        for (int y1 = 0; y1 < 50; y1++) {
-      //          delay(5);
-      //          int anim = (y1 / 11) % 8;
-      //          salto++;
-      //          LCD_Sprite(x, 77 - salto, 31, 74, LinkSalto, 3, anim, 0, 0);
-      //          H_line( x, 77 - salto + 74, 31, 0x0002);
-      //        }
-      //        int alturafinal = 0;
-      //        alturafinal = 77 - salto;
-      //        salto = 0;
-      //
-      //        for (int y1 = 0; y1 < 32; y1++) {
-      //          delay(5);
-      //          int anim = (y1 / 11) % 8;
-      //          salto++;
-      //
-      //          LCD_Sprite(x, alturafinal + salto, 31, 74, LinkSalto , 3, anim, 0, 0);
-      //          H_line( x, alturafinal + salto - 1, 31, 0x0002);
-      //        }
-      //        salto = 0;
-      //        for (int i = 0; i < 50; i++) {
-      //          H_line( x, 103 -i, 31, 0x0002);
-      //        }
-      //      }
-      //
+      //Cuando el primer jugador quiere saltar
+      else if (control1.vertical <= 1000) {
+        //Para arriba
+        salto = 0;
+        for (int y1 = 0; y1 < 50; y1++) {
+          delay(5);
+          int anim = (y1 / 11) % 8;
+          salto++;
+          LCD_Sprite(x, 77 - salto, 31, 74, LinkSalto, 3, anim, 0, 0);
+          H_line( x, 77 - salto + 74, 31, 0x0002);
+        }
+        int alturafinal = 0;
+        alturafinal = 77 - salto;
+        salto = 0;
+
+        for (int y1 = 0; y1 < 32; y1++) {
+          delay(5);
+          int anim = (y1 / 11) % 8;
+          salto++;
+
+          LCD_Sprite(x, alturafinal + salto, 31, 74, LinkSalto , 3, anim, 0, 0);
+          H_line( x, alturafinal + salto - 1, 31, 0x0002);
+        }
+        salto = 0;
+        for (int i = 0; i < 50; i++) {
+          H_line( x, 103 - i, 31, 0x0002);
+        }
+      }
 
 
-      else if (control1.ataque1 == LOW) {
+      ///No sirve el boton de este push, por lo que lo haremos con la accion para abajo
+     // else if (control1.vertical >= 3000) {
+else if (control1.ataque1 == LOW) {
 
-        ataque_jug( x,  y, 1);
+        ataque_jug( x,  y, 1 );
         huboataque = 1;
-      }
-
-
-      //////////////////////////////////////////
-      //SEGUNDO JUGADOR////
-
-      //Segundo Jugador al lado izquierdo
-      else if (control1.arriba == LOW && y != x + 25) {
-
-        if (y > 4) {
-          int anim = (y / 11) % 8;
-          y--;
-          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
-          V_line( y + 71, 103, 45, 0x0002);
-          H_line( y, 106, 31, 0x0002);
-
-          ladojugador2 = 1;
-        }
-        else {
-          int anim = (y / 11) % 8;
-          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
-          V_line( y + 71, 103, 45, 0x0002);
-          H_line( y, 106, 31, 0x0002);
-
-          ladojugador2 = 1;
-        }
-
-
 
       }
 
-      //Segundo Jugador al lado derecho
 
-      //      else if (control1.ataque1 == LOW) {
-      //        if (y < 247) {
-      //          y++;
-      //          int anim = (y / 11) % 8;
-      //          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
-      //          V_line( y - 1, 103, 45, 0x0002);
-      //          H_line( y, 106, 31, 0x0002);
-      //          //    V_line( x - 1, 103, 48, 0x0002);
-      //          ladojugador2 = 2;
-      //        }
-      //        else {
-      //
-      //          int anim = (y / 11) % 8;
-      //          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
-      //          V_line( y - 1, 103, 45, 0x0002);
-      //          H_line( y, 106, 31, 0x0002);
-      //          //    V_line( x - 1, 103, 48, 0x0002);
-      //          ladojugador2 = 2;
-      //
-      //        }
-      //
-      //
-      //
-      //      }
-
-
-      //////////////////////////////////////
-      //CUANDO NO SE APACHA NADA
-      ////////////////////////////////////////
-
+      //Cuando esta parado el primer jugador
       else {
-
-
-        //     if (ladujugar) //Para cuandoe estan muy cerca chekear que y-x sea mayor a 35
-
-
-
-        if (ladojugador2 == 1) {
-          LCD_Sprite(y, 105, 43, 45, DonkeyParadoEscenario1, 3, 0, 1, 0);
-          for (int i = 43; i < 70; i++) {
-            V_line( y + i, 103, 48, 0x0002);
-            //H_line( x + 23, 151, 65, 0x0002);
-          }
-
-        }
-        if (ladojugador2 == 2) {
-          LCD_Sprite(y, 105, 43, 45, DonkeyParadoEscenario1, 3, 0, 0, 0);
-          for (int i = 43; i < 70; i++) {
-            V_line( y + i, 103, 48, 0x0002);
-            //H_line( x + 23, 151, 65, 0x0002);
-          }
-
-        }
-
-
         if (ladojugador == 1) {
           int anim = (x / 11) % 8;
           //  LCD_SpriteSD(x, 120, 22, 48, "LINKP.txt", 2, anim, 0, 0);
@@ -390,7 +336,7 @@ void loop() {
 
           if (huboataque == 1) {
             huboataque = 0;
-            for (int i = 22; i < 55; i++) {
+            for (int i = 22; i < 60; i++) {
               V_line( x + i, 103, 48, 0x0002);
               V_line( x - i, 103, 48, 0x0002);
               H_line( x + 23, 152, 65, 0x0002);
@@ -425,8 +371,99 @@ void loop() {
               H_line( x + 23, 151, 65, 0x0002);
             }
           }
+        }
+      }
 
 
+      //////////////////////////////////////////
+      //SEGUNDO JUGADOR////
+
+      //Segundo Jugador al lado izquierdo
+      if (control2.horizontal >= 3000 && y != x + 25) {
+
+        if (y > 4) {
+          int anim = (y  / 11) % 8;
+          y --;
+          LCD_Sprite(y , 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
+          V_line( y  + 71, 103, 45, 0x0002);
+          H_line( y , 106, 31, 0x0002);
+
+          ladojugador2 = 1;
+        }
+        else {
+          int anim = (y / 11) % 8;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 1, 0);
+          V_line( y  + 71, 103, 45, 0x0002);
+          H_line( y , 106, 31, 0x0002);
+
+          ladojugador2 = 1;
+
+        }
+
+
+
+      }
+
+      //  Segundo Jugador al lado derecho
+      else if (control2.horizontal <= 1000 && y <= 247) {
+        if (y < 247) {
+          y++;
+          int anim = (y / 11) % 8;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
+          V_line( y - 1, 103, 45, 0x0002);
+          H_line( y, 106, 31, 0x0002);
+          //    V_line( x - 1, 103, 48, 0x0002);
+          ladojugador2 = 2;
+        }
+        else {
+
+          int anim = (y / 11) % 8;
+          LCD_Sprite(y, 106, 71, 45, DonkeyCorriendoEscenario1, 5, anim, 0, 0);
+          V_line( y - 1, 103, 45, 0x0002);
+          H_line( y, 106, 31, 0x0002);
+          //    V_line( x - 1, 103, 48, 0x0002);
+          ladojugador2 = 2;
+
+        }
+
+
+
+      }
+
+
+      else if (control2.ataque1 == LOW) {
+
+        ataque_jug( x,  y, 2);
+        huboataque2 = 1;
+
+      }
+
+
+      //////////////////////////////////////
+      //CUANDO NO SE APACHA NADA CON DONKEY
+      ////////////////////////////////////////
+
+      else {
+
+
+        //     if (ladujugar) //Para cuandoe estan muy cerca chekear que y-x sea mayor a 35
+
+
+        if (ladojugador2 == 1) {
+
+          LCD_Sprite(y, 105, 43, 45, DonkeyParadoEscenario1, 3, 0, 1, 0);
+          for (int i = 43; i < 70; i++) {
+            V_line( y  + i, 103, 48, 0x0002);
+            //H_line( x + 23, 151, 65, 0x0002);
+          }
+
+        }
+        if (ladojugador2 == 2) {
+          LCD_Sprite(y, 105, 43, 45, DonkeyParadoEscenario1, 3, 0, 0, 0);
+          for (int i = 43; i < 70; i++) {
+            V_line( y + i, 103, 48, 0x0002);
+            //H_line( x + 23, 151, 65, 0x0002);
+          }
 
         }
       }
@@ -812,10 +849,13 @@ void ataque_jug(int x, int y, int atacador) {
   else {//Se supone atacador es el segundo
     if (y == x + 25) {
       dano1++;
+      animacionGolpe(2, 1);
       porcentaje_vida(1, dano1);
     }
 
-    else {}
+    else {
+      animacionGolpe(2, 0);
+    }
   }
 }
 
@@ -909,7 +949,7 @@ void animacionGolpe(int jugador, int golpeo) {
 
       else {
         for (int z = 0; z < 5; z++) {
-          V_line( y +40- z, 103, 48, 0x0002);
+          V_line( y + 40 - z, 103, 48, 0x0002);
         };
         for (int z = 0; z < 60; z++) {
           delay(5);
@@ -925,7 +965,7 @@ void animacionGolpe(int jugador, int golpeo) {
         for (int y = 0; y < 60; y++) {
           delay(5);
           int anim = (y / 11) % 8;
-          LCD_Sprite(x, 103, 103, 48, LinkEspada, 4, anim, 1, 0);
+          LCD_Sprite(x-40, 103, 103, 48, LinkEspada, 4, anim, 1, 0);
         }
 
       }
@@ -943,6 +983,77 @@ void animacionGolpe(int jugador, int golpeo) {
 
   }
 
+  else { //Para el segundo jugador
+
+    if (golpeo == 1) {
+
+      if (ladojugador2 == 1) {
+
+        for (int z = 0; z < 88; z++) {
+          delay(1);
+          int anim = (z / 11) % 8;
+          LCD_Sprite(y, 103, 46, 45, DonkeyAtaque1Escenario1, 8, anim, 1, 0);
+          // LCD_Sprite(y, 103, 53, 52, DonkeyAtaque1Escenario1Corregido, 8, anim, 0, 0);
+          // LCD_Sprite(x, 103, 53, 48, LinkGolpeadoEscenario1, 5, anim, 0, 0);
+        }
+
+        String textoInicio = "PUM!";
+        LCD_Print(textoInicio, y, 80, 2, 0xffff, 0x0002);
+        // delay(1000);
+
+        for (int z = 0; z < 50; z++) {
+          delay(1);
+          int anim = (z / 11) % 8;
+          LCD_Sprite(x - 20, 103, 53, 48, LinkGolpeadoEscenario1, 5, anim, 0, 0);
+
+        }
+
+      }
+
+      else { //ladojugador2 es igual a 2
+        for (int z = 0; z < 88 ; z++) {
+          delay(1);
+          int anim = (z / 11) % 8;
+          LCD_Sprite(y, 103, 46, 45, DonkeyAtaque1Escenario1, 8, anim, 0, 0);
+          // LCD_Sprite(y, 103, 53, 52, DonkeyAtaque1Escenario1Corregido, 8, anim, 0, 0);
+          LCD_Sprite(x, 103, 53, 48, LinkGolpeadoEscenario1, 5, anim, 1, 0);
+        }
+
+
+
+      }
+    }
+    else { //No hay golpe
+      if (ladojugador2 == 1) {
+
+        for (int z = 0; z < 88; z++) {
+          delay(1);
+          int anim = (z / 11) % 8;
+          LCD_Sprite(y, 103, 46, 45, DonkeyAtaque1Escenario1, 8, anim, 1, 0);
+          // LCD_Sprite(y, 103, 53, 52, DonkeyAtaque1Escenario1Corregido, 8, anim, 0, 0);
+        }
+
+        String textoInicio = "PUM!";
+        LCD_Print(textoInicio, y, 80, 2, 0xffff, 0x0002);
+
+      }
+
+      else { //ladojugador2 es igual a 2
+        for (int z = 0; z < 88 ; z++) {
+          delay(1);
+          int anim = (z / 11) % 8;
+          LCD_Sprite(y, 103, 46, 45, DonkeyAtaque1Escenario1, 8, anim, 0, 0);
+         // LCD_Sprite(y, 103, 53, 52, DonkeyAtaque1Escenario1Corregido, 8, anim, 0, 0);
+        }
+      }
+
+    }
+
+    delay(80);
+    FillRect(y, 80, 60, 50, 0x0002);
+
+  }
+
 
 
 }
@@ -957,12 +1068,14 @@ void animacionGolpe(int jugador, int golpeo) {
 //Parado: (48-22-2)
 //Salto:
 //Ataque1:
+//Golpeado (48-53-5)
+
 /////////////////////////////////
 //Donkey: (altura-ancho-#sprite)
 //Corriendo;
 //Parado:
 //Salto:
-//Ataque1:
+//Ataque1:(45-46-8)
 //Golpeado(45-52-6)
 
 /////////////////////////////////////
